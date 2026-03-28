@@ -323,41 +323,68 @@ static void CollideBodyWithFace(BLVFace *face, Pid face_pid, bool ignore_etherea
  * @return                              Whether there is a collision.
  */
 static bool CollideWithCylinder(const Vec3f &center_lo, float radius, float height, Pid pid, bool jagged_top) {
+    // Extend bbox by radius_lo to cover end-cap collision zones below and above the cylinder.
     BBoxf bbox = BBoxf::forCylinder(center_lo, radius, height);
+    bbox.z1 -= collision_state.radius_lo;
+    bbox.z2 += collision_state.radius_lo;
     if (!collision_state.bbox.intersects(bbox))
         return false;
 
-    float dist_x = center_lo.x - collision_state.position_lo.x;
-    float dist_y = center_lo.y - collision_state.position_lo.y;
     Vec3f dir = collision_state.direction;
-
-    //// Length of dist vector projected onto collision_state.direction.
-    float dist_dot_dir = dist_x * dir.x + dist_y * dir.y;
-    if (dist_dot_dir <= 0.0f) {
-        return false; // We're moving away from the cylinder.
-    }
-
-    Vec3f pos = collision_state.position_lo;
     radius += collision_state.radius_lo;
-    // add radius to treat bottom of collison state as flat
-    Vec3f vert1 = center_lo, vert2 = center_lo + Vec3f(0, 0, height + collision_state.radius_lo);
+    Vec3f vert1 = center_lo;
+    Vec3f vert2 = center_lo + Vec3f(0, 0, height);
 
+    bool result = false;
     float newdist, intersection;
+
+    // Barrel check: sphere vs cylinder side wall.
     if (CollideWithLine(vert1, vert2, radius, collision_state.adjusted_move_distance, &newdist, &intersection, true)) {
         Vec3f newPos = collision_state.position_lo + dir * newdist;
-        Vec3f dirC = center_lo - newPos;
+        // For a vertical cylinder barrel hit, the push direction is horizontal only.
+        Vec3f dirC(center_lo.x - newPos.x, center_lo.y - newPos.y, 0.0f);
         dirC.normalize();
-        Vec3f colPos = newPos + dirC * collision_state.radius_lo;
-        collision_state.collisionPos = colPos;
-
-        // set collision paramas
+        collision_state.collisionPos = newPos + dirC * collision_state.radius_lo;
         collision_state.adjusted_move_distance = newdist;
         collision_state.pid = pid;
-
-        return true;
+        result = true;
     }
 
-    return false;
+    // Bottom end-cap check: sphere vs cylinder base hemisphere.
+    {
+        float a = dir.lengthSqr();
+        Vec3f toCapCenter = collision_state.position_lo - vert1;
+        float b = 2.0f * dot(dir, toCapCenter);
+        float c = toCapCenter.lengthSqr() - radius * radius;
+        if (hasShorterSolution(a, b, c, collision_state.adjusted_move_distance, &newdist)) {
+            Vec3f newPos = collision_state.position_lo + dir * newdist;
+            Vec3f dirC = vert1 - newPos;
+            dirC.normalize();
+            collision_state.collisionPos = newPos + dirC * collision_state.radius_lo;
+            collision_state.adjusted_move_distance = newdist;
+            collision_state.pid = pid;
+            result = true;
+        }
+    }
+
+    // Top end-cap check: sphere vs cylinder top hemisphere.
+    {
+        float a = dir.lengthSqr();
+        Vec3f toCapCenter = collision_state.position_lo - vert2;
+        float b = 2.0f * dot(dir, toCapCenter);
+        float c = toCapCenter.lengthSqr() - radius * radius;
+        if (hasShorterSolution(a, b, c, collision_state.adjusted_move_distance, &newdist)) {
+            Vec3f newPos = collision_state.position_lo + dir * newdist;
+            Vec3f dirC = vert2 - newPos;
+            dirC.normalize();
+            collision_state.collisionPos = newPos + dirC * collision_state.radius_lo;
+            collision_state.adjusted_move_distance = newdist;
+            collision_state.pid = pid;
+            result = true;
+        }
+    }
+
+    return result;
 }
 
 static void CollideWithDecoration(int id) {
