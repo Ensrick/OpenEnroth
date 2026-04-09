@@ -955,6 +955,39 @@ GAME_TEST(Issues, Issue1482) {
     EXPECT_LT(timeTape.delta(), Duration::fromMinutes(10));
 }
 
+GAME_TEST(Issues, Issue1485) {
+    // With RegenStacking=true (OE default), multiple regen items all contribute.
+    // With RegenStacking=false (vanilla), only one regen tick fires regardless of item count.
+    for (bool stacking : {true, false}) {
+        engine->config->gameplay.RegenStacking.setValue(stacking);
+        game.startNewGame();
+
+        Character &character = pParty->pCharacters[0];
+
+        // Equip two rings of regeneration — with stacking, both contribute; without, only one tick fires.
+        Item regenRing1(ITEM_EMERALD_RING);
+        regenRing1.specialEnchantment = ITEM_ENCHANTMENT_OF_REGENERATION;
+        Item regenRing2(ITEM_EMERALD_RING);
+        regenRing2.specialEnchantment = ITEM_ENCHANTMENT_OF_REGENERATION;
+        character.inventory.equip(ITEM_SLOT_RING1, regenRing1);
+        character.inventory.equip(ITEM_SLOT_RING2, regenRing2);
+
+        character.health = 1;
+
+        // Advance game time by 5 minutes to trigger one regen tick.
+        pParty->GetPlayingTime() += Duration::fromMinutes(5);
+        game.tick(1);
+
+        int hpGained = character.health - 1;
+        if (stacking) {
+            EXPECT_EQ(hpGained, 2); // 2 items * 1 tick each = 2 HP.
+        } else {
+            EXPECT_EQ(hpGained, 1); // Vanilla: capped at 1 tick regardless of item count.
+        }
+    }
+    engine->config->gameplay.RegenStacking.setValue(true); // Restore default.
+}
+
 GAME_TEST(Issues, Issue1489) {
     // Cannot equip amulets or gauntlets
     auto equipmentId = [] (ItemSlot slot) -> ItemId {
