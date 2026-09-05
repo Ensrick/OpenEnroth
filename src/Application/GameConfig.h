@@ -281,6 +281,10 @@ class GameConfig : public Config {
             "Don't let eradicated characters drink potions. In vanilla a potion dropped on an eradicated "
             "character's portrait is drunk normally."};
 
+        Bool ClickableAccuracyWell = {this, "clickable_accuracy_well", true,
+            "Allow mouse interaction with the Accuracy well in Harmondale. In vanilla it only responds to Space. "
+            "Applied when the map loads."};
+
      private:
         static int ValidateMaxFlightHeight(int max_flight_height) {
             if (max_flight_height <= 0 || max_flight_height > 16192)
