@@ -282,9 +282,8 @@ class GameConfig : public Config {
             "character's portrait is drunk normally."};
 
         Bool TurnBasedFocusSkipsIncapacitated = {this, "turn_based_focus_skips_incapacitated", true,
-            "In turn-based mode move the focus off the active character as soon as it can no longer act, the same way "
-            "realtime mode does. Off keeps an eradicated character selected, which the infinite well drinking trick "
-            "relies on."};
+            "In turn-based mode move the focus off the active character when it can no longer act. "
+            "Off keeps the existing turn-based focus behavior."};
 
      private:
         static int ValidateMaxFlightHeight(int max_flight_height) {
