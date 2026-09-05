@@ -69,7 +69,7 @@ static void initSpellSprite(SpriteObject *spritePtr,
     spritePtr->spell_skill = spellMastery;
     spritePtr->uObjectDescID = pObjectList->ObjectIDByItemID(spritePtr->spriteId);
     spritePtr->spell_caster_pid = Pid(OBJECT_Character, pCastSpell->casterCharacterIndex);
-    spritePtr->uSoundID = pCastSpell->overrideSoundId;
+    spritePtr->uSoundID = pCastSpell->castSource;
 }
 
 /**
@@ -2937,12 +2937,19 @@ void CastSpellInfoHelpers::castSpell() {
  * Spells from this queue will be cast in event queue processing.
  *
  * @offset 0x00427DA0
+ *
+ * @param uSpellID                      Spell id.
+ * @param casterIndex                   Zero-based index of the caster.
+ * @param skill_level                   Skill value to use for casting.
+ * @param uFlags                        Spell flags.
+ * @param castSource                    Encoded casting source stored with the queued spell.
+ * @return                              Queue slot index, or size_t(-1) if the queue is full.
  */
 static size_t pushCastSpellInfo(SpellId uSpellID,
                                 int casterIndex,
                                 CombinedSkillValue skill_level,
                                 SpellCastFlags uFlags,
-                                int overrideSoundId) {
+                                int castSource) {
     for (size_t i = 0; i < pCastSpellInfo.size(); i++) {
         if (pCastSpellInfo[i].uSpellID == SPELL_NONE) {
             pCastSpellInfo[i].uSpellID = uSpellID;
@@ -2953,7 +2960,7 @@ static size_t pushCastSpellInfo(SpellId uSpellID,
             pCastSpellInfo[i].targetPid = Pid();
             pCastSpellInfo[i].flags = uFlags;
             pCastSpellInfo[i].overrideSkillValue = skill_level;
-            pCastSpellInfo[i].overrideSoundId = overrideSoundId;
+            pCastSpellInfo[i].castSource = castSource;
             return i;
         }
     }
@@ -2988,7 +2995,7 @@ void pushSpellOrRangedAttack(SpellId spell,
                              int casterIndex,
                              CombinedSkillValue skill_value,
                              SpellCastFlags flags,
-                             int overrideSoundId) {
+                             int castSource) {
     if (pParty->bTurnBasedModeOn) {
         if (pTurnEngine->turn_stage == TE_WAIT ||
             pTurnEngine->turn_stage == TE_MOVEMENT) {
@@ -3046,7 +3053,7 @@ void pushSpellOrRangedAttack(SpellId spell,
             case SPELL_MIND_ENSLAVE:
             case SPELL_LIGHT_PARALYZE:
             case SPELL_DARK_CONTROL_UNDEAD:
-                if (!overrideSoundId) {
+                if (!castSource) {
                     // These spells are targeted when cast from the spellbook or a scroll. Quick casts and wands
                     // resolve the target from the cursor or the closest actor instead.
                     flags |= ON_CAST_TargetedActor;
@@ -3132,7 +3139,7 @@ void pushSpellOrRangedAttack(SpellId spell,
 
     CastSpellInfoHelpers::cancelSpellCastInProgress();
 
-    int result = pushCastSpellInfo(spell, casterIndex, skill_value, flags, overrideSoundId);
+    int result = pushCastSpellInfo(spell, casterIndex, skill_value, flags, castSource);
 
     // TODO: if no more place for spells in queue then spell is just ignored?
     //       Need assert?

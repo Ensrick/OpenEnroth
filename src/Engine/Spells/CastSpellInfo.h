@@ -71,8 +71,7 @@ struct CastSpellInfo {
     int targetInventoryIndex = -1; // Target inventory item index (in Character::pInventoryItemList) in target
                                    // character's inventory, if any.
 
-    int overrideSoundId = 0; // TODO(captainurist): doesn't look like sound id. Maybe flags?
-                             //                     Bits 0-2 for caster (1-based), bit 3 for blaster.
+    int castSource = 0; // 0 for regular casts, otherwise 1-based caster index with bit 3 set for wands and blasters.
 };
 
 /**
@@ -93,13 +92,14 @@ struct CastSpellInfo {
  * @param casterIndex                   Zero-based index of a character casting the spell.
  * @param skill_value                   Skill value that the spell is cast with.
  * @param flags                         Spell flags. Can be empty or have several flags.
- * @param overrideSoundId                            ???
+ * @param castSource                    0 for regular casts, 1-based caster index for quick casts, or that index with bit 3
+ *                                      set for wands and blasters. Nonzero values skip requesting the actor-only picker.
  */
 void pushSpellOrRangedAttack(SpellId spell,
                              int casterIndex,
                              CombinedSkillValue skill_value,
                              SpellCastFlags flags,
-                             int overrideSoundId);
+                             int castSource);
 
 /**
  * Register spell cast on party with temple donation.
