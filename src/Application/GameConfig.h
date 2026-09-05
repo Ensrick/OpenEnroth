@@ -249,6 +249,9 @@ class GameConfig : public Config {
             "Change water walk mana drain interval to 20 minutes. "
             "Spell description says that mana is drained every 20 minutes, but in vanilla, it was every 5 minutes."};
 
+        Bool FixHumanTownHallGreeting = {this, "fix_human_town_hall_greeting", true,
+            "Play the human town-hall greeting in MM7. Disable to keep the original room table's missing sound ID."};
+
         Float SpellFailureRecoveryMod = {this, "spell_failure_recovery_mod", 0.5f, &ValidateSpellFailureRecoveryMod,
             "Recovery time modifier when spell casting ended in failure for the reason where spell cannot be cast at all in current context. "
             "Context include situation where outdoor spell is casted indoor or targeted spell is casted with no characters on screen."};
