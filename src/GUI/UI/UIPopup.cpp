@@ -391,6 +391,7 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
                     speech = SPEECH_REPAIR_FAIL;
             }
         }
+        // TODO(pskelton): consider replacing identifyOrRepairReactionPlayed with a check whether the character is already reacting.
         if (speech != SPEECH_NONE && !identifyOrRepairReactionPlayed) {
             pParty->activeCharacter().playReaction(speech);
             identifyOrRepairReactionPlayed = true;
